@@ -3,150 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в систему</title>
+    <title>Каталог онлайн-курсов в Казахстане - LERNA</title>
     <style>
-        body {
-            font-family: 'Courier New', Courier, monospace; /* Стиль печатной машинки */
-            margin: 0;
-            padding: 0;
-            background-color: #222; /* Темный фон */
-            color: #ddd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Экран ввода пароля */
-        #login-screen {
-            text-align: center;
-            background: #333;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-        }
-
-        h2 {
-            margin-bottom: 20px;
-            color: #fff;
-        }
-
-        input[type="password"] {
-            font-size: 24px;
-            padding: 10px;
-            text-align: center;
-            width: 200px;
-            border: 2px solid #555;
-            background-color: #111;
-            color: #0f0; /* Зеленый текст как в матрице */
-            border-radius: 5px;
-            outline: none;
-            letter-spacing: 5px;
-        }
-
-        button {
-            display: block;
-            margin: 20px auto 0;
-            padding: 10px 30px;
-            font-size: 18px;
-            background-color: #0f0;
-            color: #000;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background-color: #0c0;
-        }
-
-        #error-msg {
-            color: #ff4444;
-            margin-top: 15px;
-            display: none; /* Скрыто по умолчанию */
-        }
-
-        /* Экран контента (скрыт по умолчанию) */
-        #content-screen {
-            display: none; /* Скрыто! */
-            width: 80%;
-            max-width: 800px;
-            height: 80vh;
-            background: #fff;
-            color: #333;
-            padding: 40px;
-            border-radius: 10px;
-            overflow-y: auto;
-            font-family: sans-serif;
-        }
-
-        .message-box {
-            border-bottom: 1px solid #eee;
-            padding: 15px 0;
-        }
+        /* Базовые стили */
+        body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; margin: 0; color: #333; }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; padding: 0; }
         
-        .message-date {
-            font-size: 0.8em;
-            color: #888;
-        }
+        /* Шапка сайта [1] */
+        header { background: #fff; padding: 15px 0; border-bottom: 1px solid #ddd; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+        .top-nav { display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; font-weight: bold; }
+        .search-bar { margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; width: 100%; max-width: 300px; }
+
+        /* Основная разметка */
+        .layout { display: grid; grid-template-columns: 250px 1fr; gap: 30px; margin-top: 30px; }
+        
+        /* Сайдбар с фильтрами [2] */
+        aside { background: #fff; padding: 20px; border-radius: 8px; height: fit-content; }
+        .filter-group { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .filter-title { font-weight: bold; margin-bottom: 10px; display: block; }
+        .filter-option { display: block; margin-bottom: 5px; font-size: 14px; color: #555; }
+        
+        /* Сетка курсов [2, 3] */
+        .courses-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        
+        /* Карточка курса */
+        .card { background: #fff; border-radius: 12px; padding: 20px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: space-between; }
+        .card-tag { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 5px; }
+        .card-title { font-size: 18px; font-weight: bold; margin: 5px 0 10px; }
+        .card-meta { font-size: 13px; color: #666; margin-bottom: 15px; }
+        .card-badges { display: flex; gap: 10px; margin-bottom: 15px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-hit { background: #ffeb3b; color: #333; } /* ХИТ */
+        .badge-discount { background: #ff4757; color: #fff; } /* Скидка */
+        
+        .cashback { background: #e0f7fa; color: #006064; padding: 5px; font-size: 12px; border-radius: 4px; margin-bottom: 15px; }
+        
+        .price-block { margin-bottom: 15px; }
+        .old-price { text-decoration: line-through; color: #999; font-size: 14px; }
+        .new-price { font-size: 20px; font-weight: bold; color: #000; }
+        
+        .installment { font-size: 14px; color: #000; font-weight: 500; margin-bottom: 20px; }
+        .installment span { color: #666; font-weight: normal; font-size: 12px; }
+
+        .btn { display: block; width: 100%; padding: 12px; text-align: center; background-color: #005bff; color: white; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
+        .btn:hover { background-color: #0046c7; }
+
+        /* Подвал [4] */
+        footer { background: #333; color: #fff; padding: 40px 0; margin-top: 50px; font-size: 14px; }
+        .footer-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .footer-cols h4 { margin-bottom: 15px; color: #ddd; }
+        .footer-cols p { margin: 5px 0; color: #bbb; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h2>🔒 ДОСТУП ОГРАНИЧЕН</h2>
-        <input type="password" id="passwordInput" placeholder="КОД" onkeyup="checkEnter(event)">
-        <button onclick="checkPassword()">ВОЙТИ</button>
-        <p id="error-msg">⛔ НЕВЕРНЫЙ КОД</p>
+<!-- Хедер навигации [1] -->
+<header>
+    <div class="container">
+        <input type="text" class="search-bar" placeholder="Поиск по курсам">
+        <nav>
+            <ul class="top-nav">
+                <li><a href="#">Все курсы</a></li>
+                <li><a href="#">Программирование</a></li>
+                <li><a href="#">Искусственный интеллект</a></li>
+                <li><a href="#">Аналитика и Data Science</a></li>
+                <li><a href="#">Дизайн</a></li>
+                <li><a href="#">Маркетинг</a></li>
+                <li><a href="#">Управление</a></li>
+                <li><a href="#">Soft Skills</a></li>
+            </ul>
+        </nav>
     </div>
+</header>
 
-    <div id="content-screen">
-        <h1 style="color: #333; border-bottom: 2px solid #333; padding-bottom: 10px;">Мои Сообщения</h1>
+<div class="container layout">
+    <!-- Сайдбар с фильтрами [2] -->
+    <aside>
+        <div style="margin-bottom: 20px; font-weight: bold;">Найдено 972 курсов</div>
         
-        <div class="message-box">
-            <div class="message-date">10 декабря 2025</div>
-            <p><strong>От кого:</strong> Система</p>
-            <p>Добро пожаловать в защищенное хранилище. Здесь будут ваши данные.</p>
+        <div class="filter-group">
+            <span class="filter-title">Тематика</span>
+            <label class="filter-option"><input type="checkbox"> Программирование</label>
+            <label class="filter-option"><input type="checkbox"> Дизайн</label>
+            <label class="filter-option"><input type="checkbox"> Маркетинг</label>
         </div>
 
-        <div class="message-box">
-            <div class="message-date">11 декабря 2025</div>
-            <p><strong>Заметка:</strong> Не забыть загрузить SCORM пакеты в папку курса.</p>
+        <div class="filter-group">
+            <span class="filter-title">Профессия</span>
+            <label class="filter-option"><input type="checkbox"> Python-разработчик</label>
+            <label class="filter-option"><input type="checkbox"> 1С-разработчик</label>
+            <label class="filter-option"><input type="checkbox"> Графический дизайнер</label>
         </div>
 
-        <button onclick="location.reload()" style="background-color: #555; color: white; margin-top: 30px;">ВЫЙТИ</button>
+        <div class="filter-group">
+            <span class="filter-title">Школа</span>
+            <label class="filter-option"><input type="checkbox"> Skillbox</label>
+            <label class="filter-option"><input type="checkbox"> GeekBrains</label>
+            <label class="filter-option"><input type="checkbox"> SkillFactory</label>
+        </div>
+
+        <div class="filter-group">
+            <span class="filter-title">Сложность</span>
+            <label class="filter-option"><input type="checkbox"> Для новичков</label>
+            <label class="filter-option"><input type="checkbox"> Для продвинутых</label>
+        </div>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="courses-grid">
+        
+        <!-- Карточка курса 1 (Программирование) [2] -->
+        <article class="card">
+            <div>
+                <div class="card-tag">Программирование</div>
+                <h3 class="card-title">Python-разработчик + ИИ</h3>
+                <div class="card-meta">10 мес • Старт: после оплаты</div>
+                <div class="card-badges">
+                    <span class="badge badge-hit">ХИТ</span>
+                    <span class="badge badge-discount">-60%</span>
+                </div>
+                <div class="cashback">Кешбэк 30%: <b>213 609 баллов</b></div>
+            </div>
+            <div>
+                <div class="price-block">
+                    <div class="old-price">1 780 075 ₸</div>
+                    <div class="new-price">712 030 ₸</div>
+                </div>
+                <div class="installment">
+                    29 668 ₸/мес<br>
+                    <span>В рассрочку на 24 мес</span>
+                </div>
+                <button class="btn">Подробнее</button>
+            </div>
+        </article>
+
+        <!-- Карточка курса 2 (Аналитика) [2] -->
+        <article class="card">
+            <div>
+                <div class="card-tag">Аналитика и Data Science</div>
+                <h3 class="card-title">Data Scientist с нуля до PRO</h3>
+                <div class="card-meta">25 мес • Старт: 17 декабря</div>
+                <div class="card-badges">
+                    <span class="badge badge-hit">ХИТ</span>
+                    <span class="badge badge-discount">-50%</span>
+                </div>
+                <div class="cashback">Кешбэк 30%: <b>348 674 балла</b></div>
+            </div>
+            <div>
+                <div class="price-block">
+                    <div class="old-price">2 324 488 ₸</div>
+                    <div class="new-price">1 162 244 ₸</div>
+                </div>
+                <div class="installment">
+                    48 427 ₸/мес<br>
+                    <span>В рассрочку на 24 мес</span>
+                </div>
+                <button class="btn">Подробнее</button>
+            </div>
+        </article>
+
+        <!-- Карточка курса 3 (Дизайн) [2] -->
+        <article class="card">
+            <div>
+                <div class="card-tag">Дизайн</div>
+                <h3 class="card-title">Профессия Графический дизайнер с нуля до про</h3>
+                <div class="card-meta">18 мес • Старт: 18 декабря</div>
+                <div class="card-badges">
+                    <span class="badge badge-discount">-50%</span>
+                </div>
+                <div class="cashback">Кешбэк 30%: <b>335 250 баллов</b></div>
+            </div>
+            <div>
+                <div class="price-block">
+                    <div class="old-price">2 235 001 ₸</div>
+                    <div class="new-price">1 117 500 ₸</div>
+                </div>
+                <div class="installment">
+                    46 563 ₸/мес<br>
+                    <span>В рассрочку на 24 мес</span>
+                </div>
+                <button class="btn">Подробнее</button>
+            </div>
+        </article>
+
+         <!-- Карточка курса 4 (Финансы) [2] -->
+         <article class="card">
+            <div>
+                <div class="card-tag">Финансы и бухгалтерия</div>
+                <h3 class="card-title">Курс Финансовый аналитик</h3>
+                <div class="card-meta">4 мес • Старт: 17 декабря</div>
+                <div class="card-badges">
+                    <span class="badge badge-discount">-65%</span>
+                </div>
+                <div class="cashback">Кешбэк 5%: <b>22 775 баллов</b></div>
+            </div>
+            <div>
+                <div class="price-block">
+                    <div class="old-price">1 301 400 ₸</div>
+                    <div class="new-price">455 490 ₸</div>
+                </div>
+                <div class="installment">
+                    18 979 ₸/мес<br>
+                    <span>В рассрочку на 24 мес</span>
+                </div>
+                <button class="btn">Подробнее</button>
+            </div>
+        </article>
+
+    </main>
+</div>
+
+<!-- Футер [4] -->
+<footer>
+    <div class="container footer-cols">
+        <div>
+            <h4>Контакты</h4>
+            <p>+7 705 956 72 14</p>
+            <p>sales@lerna.team</p>
+            <p>partners@lerna.team</p>
+        </div>
+        <div>
+            <h4>Информация</h4>
+            <p><a href="#">Публичный договор</a></p>
+            <p><a href="#">Политика обработки данных</a></p>
+            <p><a href="#">Правила бонусной программы</a></p>
+        </div>
+        <div>
+            <h4>Адрес</h4>
+            <p>ТОО «Ньюскилз»</p>
+            <p>050057, Республика Казахстан</p>
+            <p>г. Алматы, ул. Тимирязева, д. 38/1, 2 этаж</p>
+        </div>
     </div>
-
-    <script>
-        function checkPassword() {
-            var input = document.getElementById('passwordInput').value;
-            var error = document.getElementById('error-msg');
-            var loginScreen = document.getElementById('login-screen');
-            var contentScreen = document.getElementById('content-screen');
-
-            // ПРОВЕРКА ПАРОЛЯ ЗДЕСЬ
-            if (input === '534532') {
-                // Если верно: скрываем вход, показываем контент
-                loginScreen.style.display = 'none';
-                contentScreen.style.display = 'block';
-                // Меняем цвет фона на светлый
-                document.body.style.backgroundColor = '#f0f2f5';
-            } else {
-                // Если неверно: показываем ошибку и трясем поле (визуально)
-                error.style.display = 'block';
-                document.getElementById('passwordInput').value = '';
-            }
-        }
-
-        // Чтобы работала клавиша Enter
-        function checkEnter(event) {
-            if (event.key === "Enter") {
-                checkPassword();
-            }
-        }
-    </script>
+</footer>
 
 </body>
 </html>
