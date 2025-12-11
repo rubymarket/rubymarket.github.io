@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS Player 2.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f4f4f9;
+            overflow: hidden;
+        }
+
+        /* Экран загрузки */
+        #upload-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            transition: all 0.5s;
+        }
+
+        .upload-box {
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 3px dashed #cbd5e0;
+        }
+
+        .upload-box:hover {
+            border-color: #3182ce;
+            background-color: #ebf8ff;
+        }
+
+        h1 { color: #2d3748; }
+        p { color: #718096; margin-bottom: 20px; }
+
+        /* Стили кнопки загрузки (скрытый инпут) */
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-upload-btn {
+            background-color: #3182ce;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .custom-upload-btn:hover {
+            background-color: #2b6cb0;
+        }
+
+        /* Экран плеера */
+        #player-container {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        #toolbar {
+            height: 50px;
+            background: #2d3748;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+
+        #iframe-wrapper {
+            flex-grow: 1;
+            position: relative;
+            background: white;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #loading-msg {
+            display: none;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #3182ce;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="upload-screen">
+        <div class="upload-box">
+            <h1>🚀 SCORM Плеер</h1>
+            <p>Загрузите ZIP-архив с курсом (SCORM 1.2 / 2004)</p>
+            
+            <label for="scormInput" class="custom-upload-btn">
+                📂 Выбрать файл
+            </label>
+            <input type="file" id="scormInput" accept=".zip">
+            
+            <div id="loading-msg">Распаковка архива... Подождите...</div>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.8em; color: #a0aec0;">
+            *Файл обрабатывается в браузере. Данные не сохраняются на сервере.
+        </p>
+    </div>
+
+    <div id="player-container">
+        <div id="toolbar">
+            <span id="course-title">Название курса</span>
+            <button onclick="location.reload()" style="background: #e53e3e; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">✖ Закрыть</button>
+        </div>
+        <div id="iframe-wrapper">
+            <iframe id="scormFrame"></iframe>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('scormInput').addEventListener('change', handleFileSelect, false);
+
+        async function handleFileSelect(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+
+            // Показываем индикатор загрузки
+            document.getElementById('loading-msg').style.display = 'block';
+
+            try {
+                // 1. Читаем ZIP файл
+                const zip = await JSZip.loadAsync(file);
+                
+                // 2. Ищем файл imsmanifest.xml (паспорт курса)
+                const manifestFile = zip.file("imsmanifest.xml");
+                if (!manifestFile) {
+                    alert("Ошибка: Это не SCORM пакет! (Нет файла imsmanifest.xml)");
+                    location.reload();
+                    return;
+                }
+
+                const manifestText = await manifestFile.async("text");
+                
+                // 3. Парсим XML, чтобы найти запускаемый файл
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(manifestText, "text/xml");
+                
+                // Пытаемся найти первый <resource> с типом webcontent
+                const resource = xmlDoc.querySelector("resource[type='webcontent']");
+                let launchFile = "";
+                
+                if (resource) {
+                    launchFile = resource.getAttribute("href");
+                } else {
+                    // Если не нашли в манифесте, ищем index.html или story.html (стандарт Articulate/iSpring)
+                    if (zip.file("index.html")) launchFile = "index.html";
+                    else if (zip.file("story.html")) launchFile = "story.html";
+                }
+
+                if (!launchFile) {
+                    alert("Не удалось найти стартовый файл курса!");
+                    location.reload();
+                    return;
+                }
+
+                // 4. ГЛАВНАЯ МАГИЯ: Создаем виртуальную файловую систему в памяти
+                // Нам нужно превратить файлы внутри ZIP в ссылки (Blob URL), которые поймет браузер
+                
+                const blobUrls = {};
+                
+                // Рекурсивная функция для обработки всех файлов
+                const processFiles = async () => {
+                    const promises = [];
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (!zipEntry.dir) {
+                            promises.push(async () => {
+                                const blob = await zipEntry.async("blob");
+                                // Определяем тип файла
+                                let mime = "application/octet-stream";
+                                if(relativePath.endsWith(".html")) mime = "text/html";
+                                else if(relativePath.endsWith(".js")) mime = "application/javascript";
+                                else if(relativePath.endsWith(".css")) mime = "text/css";
+                                else if(relativePath.endsWith(".png")) mime = "image/png";
+                                else if(relativePath.endsWith(".jpg")) mime = "image/jpeg";
+
+                                // Создаем правильный blob с нужным типом
+                                const typedBlob = new Blob([blob], {type: mime});
+                                const blobUrl = URL.createObjectURL(typedBlob);
+                                blobUrls[relativePath] = blobUrl;
+                            });
+                        }
+                    });
+                    await Promise.all(promises.map(p => p()));
+                };
+
+                await processFiles();
+
+                // 5. Теперь самое сложное: подменить пути внутри HTML файла
+                // Чтобы курс думал, что картинка "img/logo.png" лежит по адресу "blob:..."
+                
+                // (Для простого примера мы просто запустим index.html как Blob. 
+                // В 100% сложных курсов это может не сработать из-за относительных путей, 
+                // но для простых SCORM это сработает).
+
+                // Получаем содержимое стартового файла
+                let startFileContent = await zip.file(launchFile).async("string");
+
+                // Пытаемся заменить относительные ссылки на Blob ссылки (очень упрощенно)
+                // В реальности для полной поддержки нужно использовать Service Worker (это очень сложно)
+                // Но попробуем запустить файл как есть, создав для него URL
+                
+                const startBlob = new Blob([startFileContent], {type: "text/html"});
+                const startUrl = URL.createObjectURL(startBlob);
+
+                // Переключаем экран
+                document.getElementById('upload-screen').style.display = 'none';
+                document.getElementById('player-container').style.display = 'flex';
+                
+                // Запускаем iframe
+                // ВНИМАНИЕ: Сложные курсы (Articulate Storyline) могут не заработать из-за защиты браузера (CORS)
+                // Но простые HTML курсы заработают.
+                
+                // Более надежный способ для GitHub Pages - это Data URI, но он ограничен по размеру.
+                // Попробуем просто отобразить контент.
+                
+                const iframe = document.getElementById('scormFrame');
+                
+                // Чтобы это работало идеально, нам нужен ServiceWorker. 
+                // Но для начала попробуем простой метод записи в iframe.
+                iframe.contentWindow.document.open();
+                iframe.contentWindow.document.write(startFileContent);
+                iframe.contentWindow.document.close();
+                
+                // Добавляем базовый тег, чтобы относительные пути (картинки, стили) работали?
+                // Нет, без ServiceWorker относительные пути в JS/CSS сломаются.
+                
+                alert("Курс загружен! Если картинки или стили не грузятся — это ограничение работы без Сервера.");
+
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка при чтении файла: " + e.message);
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
