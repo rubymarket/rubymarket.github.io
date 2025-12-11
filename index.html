@@ -3,140 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мой Портал</title>
+    <title>Вход в систему</title>
     <style>
-        /* Основные настройки стиля */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', Courier, monospace; /* Стиль печатной машинки */
             margin: 0;
             padding: 0;
-            background-color: #f0f2f5;
-            color: #333;
-        }
-
-        /* Верхняя шапка */
-        header {
-            background-color: #ffffff;
-            padding: 20px 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background-color: #222; /* Темный фон */
+            color: #ddd;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #1a73e8; /* Синий цвет Google */
-        }
-
-        /* Контейнер для всего содержимого */
-        .container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        /* Заголовки разделов */
-        .section-title {
-            font-size: 1.2em;
-            color: #5f6368;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-
-        /* Сетка для карточек */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 50px;
-        }
-
-        /* Стиль карточки */
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            color: #202124;
-        }
-
-        .card p {
-            color: #5f6368;
-            font-size: 0.95em;
-            line-height: 1.5;
-        }
-
-        /* Кнопки */
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
+        /* Экран ввода пароля */
+        #login-screen {
             text-align: center;
-            margin-top: 15px;
+            background: #333;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
-        .btn-play {
-            background-color: #1a73e8;
-            color: white;
+        h2 {
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        input[type="password"] {
+            font-size: 24px;
+            padding: 10px;
+            text-align: center;
+            width: 200px;
+            border: 2px solid #555;
+            background-color: #111;
+            color: #0f0; /* Зеленый текст как в матрице */
+            border-radius: 5px;
+            outline: none;
+            letter-spacing: 5px;
+        }
+
+        button {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 30px;
+            font-size: 18px;
+            background-color: #0f0;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #0c0;
+        }
+
+        #error-msg {
+            color: #ff4444;
+            margin-top: 15px;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        /* Экран контента (скрыт по умолчанию) */
+        #content-screen {
+            display: none; /* Скрыто! */
+            width: 80%;
+            max-width: 800px;
+            height: 80vh;
+            background: #fff;
+            color: #333;
+            padding: 40px;
+            border-radius: 10px;
+            overflow-y: auto;
+            font-family: sans-serif;
+        }
+
+        .message-box {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
         }
         
-        .btn-download {
-            background-color: #ea4335; /* Красный */
-            color: white;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        /* Подвал */
-        footer {
-            text-align: center;
-            padding: 30px;
-            color: #9aa0a6;
-            font-size: 0.9em;
+        .message-date {
+            font-size: 0.8em;
+            color: #888;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>🎓 Мой Личный Кабинет</h1>
-        <div>Admin</div>
-    </header>
+    <div id="login-screen">
+        <h2>🔒 ДОСТУП ОГРАНИЧЕН</h2>
+        <input type="password" id="passwordInput" placeholder="КОД" onkeyup="checkEnter(event)">
+        <button onclick="checkPassword()">ВОЙТИ</button>
+        <p id="error-msg">⛔ НЕВЕРНЫЙ КОД</p>
+    </div>
 
-    <div class="container">
+    <div id="content-screen">
+        <h1 style="color: #333; border-bottom: 2px solid #333; padding-bottom: 10px;">Мои Сообщения</h1>
         
-        <div class="section-title">📚 Мои курсы (SCORM)</div>
-        <div class="grid">
-            
-            <div class="card">
-                <div>
-                    <h3>Вводный курс</h3>
-                    <p>Базовый курс обучения. Запуск SCORM пакета в браузере.</p>
-                </div>
-                <a href="scorm_folder_1/index.html" class="btn btn-play">▶ Запустить курс</a>
-            </div>
+        <div class="message-box">
+            <div class="message-date">10 декабря 2025</div>
+            <p><strong>От кого:</strong> Система</p>
+            <p>Добро пожаловать в защищенное хранилище. Здесь будут ваши данные.</p>
+        </div>
 
-            <div class="card">
-                <div>
-                    <h3>Психология (Демо)</h3>
-                    <p>Интерактивный тре
+        <div class="message-box">
+            <div class="message-date">11 декабря 2025</div>
+            <p><strong>Заметка:</strong> Не забыть загрузить SCORM пакеты в папку курса.</p>
+        </div>
+
+        <button onclick="location.reload()" style="background-color: #555; color: white; margin-top: 30px;">ВЫЙТИ</button>
+    </div>
+
+    <script>
+        function checkPassword() {
+            var input = document.getElementById('passwordInput').value;
+            var error = document.getElementById('error-msg');
+            var loginScreen = document.getElementById('login-screen');
+            var contentScreen = document.getElementById('content-screen');
+
+            // ПРОВЕРКА ПАРОЛЯ ЗДЕСЬ
+            if (input === '534532') {
+                // Если верно: скрываем вход, показываем контент
+                loginScreen.style.display = 'none';
+                contentScreen.style.display = 'block';
+                // Меняем цвет фона на светлый
+                document.body.style.backgroundColor = '#f0f2f5';
+            } else {
+                // Если неверно: показываем ошибку и трясем поле (визуально)
+                error.style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+            }
+        }
+
+        // Чтобы работала клавиша Enter
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                checkPassword();
+            }
+        }
+    </script>
+
+</body>
+</html>
