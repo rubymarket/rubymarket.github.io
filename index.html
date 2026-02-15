@@ -242,147 +242,149 @@
     </main>
 
     <script>
-        // АВТО-КОНФИГ: Извлекает данные из URL текущей страницы
-        const pathParts = window.location.pathname.split('/').filter(p => p);
-        const CONFIG = {
-            owner: window.location.hostname.split('.')[0],
-            repo: pathParts[0] || '', 
-            branch: 'main'
-        };
+    // Явно прописываем данные, чтобы на чужих устройствах не было ошибок распознавания
+    const CONFIG = {
+        owner: 'DailyWork-web', 
+        repo: 'learn_courses_portal_rep', 
+        branch: 'main'
+    };
 
-        const GITHUB_API_URL = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/git/trees/${CONFIG.branch}?recursive=1`;
-        
-        let repoTree = []; 
+    const GITHUB_API_URL = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/git/trees/${CONFIG.branch}?recursive=1`;
+    
+    let repoTree = []; 
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const icon = document.getElementById('sidebar-icon');
-            sidebar.classList.toggle('hidden');
-            icon.innerText = sidebar.classList.contains('hidden') ? '❯' : '❮';
-        }
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const icon = document.getElementById('sidebar-icon');
+        sidebar.classList.toggle('hidden');
+        icon.innerText = sidebar.classList.contains('hidden') ? '❯' : '❮';
+    }
 
-        function toggleCourses() {
-            const list = document.getElementById('courses-list');
-            const arrow = document.getElementById('arrow');
-            list.classList.toggle('open');
-            arrow.classList.toggle('rotate');
-            const btns = list.querySelectorAll('.course-btn');
-            btns.forEach((btn, idx) => {
-                btn.style.transitionDelay = list.classList.contains('open') ? `${idx * 0.05}s` : '0s';
+    function toggleCourses() {
+        const list = document.getElementById('courses-list');
+        const arrow = document.getElementById('arrow');
+        list.classList.toggle('open');
+        arrow.classList.toggle('rotate');
+        const btns = list.querySelectorAll('.course-btn');
+        btns.forEach((btn, idx) => {
+            btn.style.transitionDelay = list.classList.contains('open') ? `${idx * 0.05}s` : '0s';
+        });
+    }
+
+    function updateTheme() {
+        const isLight = document.getElementById('theme-toggle').checked;
+        document.body.setAttribute('data-theme', isLight ? 'light' : 'dark');
+        document.getElementById('theme-text').innerText = isLight ? 'Light Mode' : 'Dark Mode';
+    }
+
+    async function initPortal() {
+        const sidebarList = document.getElementById('courses-list');
+        try {
+            const response = await fetch(GITHUB_API_URL);
+            
+            if (!response.ok) {
+                if (response.status === 403) throw new Error("Лимит GitHub API исчерпан. Попробуйте через час.");
+                if (response.status === 404) throw new Error("Репозиторий не найден. Проверьте CONFIG.");
+                throw new Error("Ошибка сети: " + response.status);
+            }
+
+            const data = await response.json();
+            if (!data.tree) throw new Error("Дерево файлов пустое");
+            
+            repoTree = data.tree;
+            // Фильтруем только папки в корне
+            const courses = repoTree.filter(item => item.type === 'tree' && !item.path.includes('/'));
+            
+            if (courses.length === 0) {
+                sidebarList.innerHTML = '<p style="color:gray; font-size:10px; padding:10px;">Курсы не найдены в корне репозитория</p>';
+                return;
+            }
+
+            sidebarList.innerHTML = '';
+            courses.forEach(course => {
+                const btn = document.createElement('button');
+                btn.className = 'course-btn';
+                btn.innerText = course.path;
+                btn.onclick = () => openCourse(course.path, course.path);
+                sidebarList.appendChild(btn);
             });
+
+        } catch (e) {
+            console.error(e);
+            sidebarList.innerHTML = `<p style="color:#ff4d4d; font-size:10px; padding:10px;">${e.message}</p>`;
         }
+    }
 
-        function updateTheme() {
-            const isLight = document.getElementById('theme-toggle').checked;
-            document.body.setAttribute('data-theme', isLight ? 'light' : 'dark');
-            document.getElementById('theme-text').innerText = isLight ? 'Light Mode' : 'Dark Mode';
-        }
+    async function openCourse(path, name) {
+        if (window.innerWidth <= 768) toggleSidebar();
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('course-view').style.display = 'block';
+        document.getElementById('course-header').innerText = name;
+        
+        const container = document.getElementById('cards-container');
+        container.innerHTML = `<p class="loading-text">Загрузка данных...</p>`;
 
-        async function initPortal() {
-            try {
-                const response = await fetch(GITHUB_API_URL);
-                const data = await response.json();
-                if (!data.tree) return;
-                
-                repoTree = data.tree;
-                const courses = repoTree.filter(item => item.type === 'tree' && !item.path.includes('/'));
-                
-                const sidebarList = document.getElementById('courses-list');
-                sidebarList.innerHTML = '';
+        const modules = repoTree.filter(item => 
+            item.type === 'tree' && 
+            item.path.startsWith(path + '/') && 
+            item.path.split('/').length === 2
+        );
 
-                courses.forEach(course => {
-                    const btn = document.createElement('button');
-                    btn.className = 'course-btn';
-                    btn.innerText = course.path;
-                    btn.onclick = () => openCourse(course.path, course.path);
-                    sidebarList.appendChild(btn);
-                });
-            } catch (e) {
-                console.error("Portal Init Error:", e);
+        container.innerHTML = '';
+
+        for (const [index, mod] of modules.entries()) {
+            const modContent = repoTree.filter(f => f.path.startsWith(mod.path + '/'));
+            const htmlFile = modContent.find(f => f.path.toLowerCase().endsWith('.html'));
+            const infoFile = modContent.find(f => f.path.toLowerCase().endsWith('.txt'));
+
+            let infoText = "";
+            if (infoFile) {
+                const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${infoFile.path}`;
+                try {
+                    const r = await fetch(rawUrl);
+                    if (r.ok) infoText = await r.text();
+                } catch (e) {}
             }
-        }
 
-        async function openCourse(path, name) {
-            if (window.innerWidth <= 768) toggleSidebar();
-            document.getElementById('welcome-screen').style.display = 'none';
-            document.getElementById('course-view').style.display = 'block';
-            document.getElementById('course-header').innerText = name;
+            const parsed = parseInfo(infoText, mod.path.split('/').pop());
+            const finalUrl = htmlFile ? `https://${CONFIG.owner}.github.io/${CONFIG.repo}/${htmlFile.path}` : null;
+
+            const card = document.createElement('div');
+            card.className = 'pres-card';
+            card.style.animation = `containerFade 0.6s ease forwards ${index * 0.1}s`;
+            card.style.opacity = "1";
             
-            const container = document.getElementById('cards-container');
-            const loadingPhrases = ["Синхронизация...", "Анализ структуры...", "Сборка модулей..."];
-            container.innerHTML = `<p class="loading-text" id="loader-msg">${loadingPhrases[0]}</p>`;
-            
-            let pIdx = 0;
-            const interval = setInterval(() => {
-                pIdx = (pIdx + 1) % loadingPhrases.length;
-                const msg = document.getElementById('loader-msg');
-                if(msg) msg.innerText = loadingPhrases[pIdx];
-            }, 600);
-
-            const modules = repoTree.filter(item => 
-                item.type === 'tree' && 
-                item.path.startsWith(path + '/') && 
-                item.path.split('/').length === 2
-            );
-
-            clearInterval(interval);
-            container.innerHTML = '';
-
-            for (const [index, mod] of modules.entries()) {
-                const modContent = repoTree.filter(f => f.path.startsWith(mod.path + '/'));
-                const htmlFile = modContent.find(f => f.path.toLowerCase().endsWith('.html'));
-                const infoFile = modContent.find(f => f.path.toLowerCase().endsWith('.txt'));
-
-                let infoText = "";
-                if (infoFile) {
-                    const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${infoFile.path}`;
-                    try {
-                        const r = await fetch(rawUrl);
-                        if (r.ok) infoText = await r.text();
-                    } catch (e) { console.warn("Info.txt load failed"); }
-                }
-
-                const parsed = parseInfo(infoText, mod.path.split('/').pop());
-                const finalUrl = htmlFile ? `https://${CONFIG.owner}.github.io/${CONFIG.repo}/${htmlFile.path}` : null;
-
-                const card = document.createElement('div');
-                card.className = 'pres-card';
-                card.style.animation = `containerFade 0.6s ease forwards ${index * 0.1}s`;
-                card.style.opacity = "1";
-                
-                card.innerHTML = `
-                    <div class="pres-img-box">${parsed.icon}</div>
-                    <div>
-                        <h3 style="margin:0 0 5px 0">${parsed.title}</h3>
-                        <p style="margin:0; font-size:0.85rem; color:var(--text-body)">${parsed.desc}</p>
-                    </div>
-                    <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('HTML файл не найден')" }">
-                        ${finalUrl ? 'Запустить' : 'Нет файла'}
-                    </button>
-                `;
-                container.appendChild(card);
-            }
+            card.innerHTML = `
+                <div class="pres-img-box">${parsed.icon}</div>
+                <div>
+                    <h3 style="margin:0 0 5px 0">${parsed.title}</h3>
+                    <p style="margin:0; font-size:0.85rem; color:var(--text-body)">${parsed.desc}</p>
+                </div>
+                <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('HTML файл не найден')" }">
+                    ${finalUrl ? 'Запустить' : 'Нет файла'}
+                </button>
+            `;
+            container.appendChild(card);
         }
+    }
 
-        // ПАРСИНГ INFO.TXT: 1-я строка заголовок, 2-я описание, 3-я эмодзи
-        function parseInfo(text, folderName) {
-            const result = { title: folderName, desc: 'Модуль обучения', icon: '📖' };
-            if (!text) return result;
+    function parseInfo(text, folderName) {
+        const result = { title: folderName, desc: 'Модуль обучения', icon: '📖' };
+        if (!text) return result;
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length >= 1) result.title = lines[0];
+        if (lines.length >= 2) result.desc = lines[1];
+        if (lines.length >= 3) result.icon = lines[2];
+        return result;
+    }
 
-            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            if (lines.length >= 1) result.title = lines[0];
-            if (lines.length >= 2) result.desc = lines[1];
-            if (lines.length >= 3) result.icon = lines[2];
+    function goHome() {
+        document.getElementById('welcome-screen').style.display = 'block';
+        document.getElementById('course-view').style.display = 'none';
+    }
 
-            return result;
-        }
-
-        function goHome() {
-            document.getElementById('welcome-screen').style.display = 'block';
-            document.getElementById('course-view').style.display = 'none';
-        }
-
-        window.onload = initPortal;
+    window.onload = initPortal;
     </script>
 </body>
 </html>
+
